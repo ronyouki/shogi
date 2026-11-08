@@ -1,0 +1,1229 @@
+<title>四間飛車 寄せ道場</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: two columns on wide screens (board left, lesson panel right), stacked on phones. */
+:root {
+  --paper: #eef0ec;        /* 和紙寄りの薄いグレー */
+  --ink: #1f2a27;          /* 墨 */
+  --muted: #5d6a66;
+  --line: #c9cfc9;
+  --panel: #f8f9f6;
+  --accent: #2f5d50;       /* 千歳緑 */
+  --accent-soft: #dbe7e1;
+  --kaya: #e2bf7c;         /* 榧の盤 */
+  --kaya-line: #6b4f22;
+  --piece: #f6e7c4;
+  --piece-edge: #8a6a32;
+  --piece-ink: #1d1a14;
+  --prom: #b3261e;         /* 成駒の朱 */
+  --mark: rgba(47, 93, 80, .38);
+  --last: rgba(201, 132, 34, .38);
+  --ok: #2f6b3f; --ok-bg: #e2efe3;
+  --miss: #9a3b1f; --miss-bg: #f6e5dc;
+  --hint: #6a5a12; --hint-bg: #f4eecd;
+  --f-display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #161b1a; --ink: #e6ebe7; --muted: #a2aea9; --line: #34403c; --panel: #1e2523;
+  --accent: #8cc4b0; --accent-soft: #24352f; --kaya: #b8945a; --kaya-line: #3e2d12;
+  --piece: #efdcb2; --piece-edge: #6f5428; --piece-ink: #1d1a14; --prom: #b3261e;
+  --mark: rgba(140, 196, 176, .42); --last: rgba(232, 170, 80, .4);
+  --ok: #9fd4a9; --ok-bg: #1f3325; --miss: #f0a88c; --miss-bg: #3a2219; --hint: #e8d58a; --hint-bg: #34301a;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #161b1a; --ink: #e6ebe7; --muted: #a2aea9; --line: #34403c; --panel: #1e2523;
+  --accent: #8cc4b0; --accent-soft: #24352f; --kaya: #b8945a; --kaya-line: #3e2d12;
+  --piece: #efdcb2; --piece-edge: #6f5428; --piece-ink: #1d1a14; --prom: #b3261e;
+  --mark: rgba(140, 196, 176, .42); --last: rgba(232, 170, 80, .4);
+  --ok: #9fd4a9; --ok-bg: #1f3325; --miss: #f0a88c; --miss-bg: #3a2219; --hint: #e8d58a; --hint-bg: #34301a;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; margin-bottom: 14px; }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(24px, 4vw, 34px); letter-spacing: .06em; margin: 0; line-height: 1.2; }
+h1 small { display: block; font-family: var(--f-body); font-weight: 500; font-size: 13px; letter-spacing: .04em; color: var(--muted); margin-top: 4px; }
+.flow { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; }
+.flow b { font-weight: 700; color: var(--ink); }
+
+#castle-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+.castle-tab { font: inherit; text-align: left; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  border-radius: 6px; padding: 8px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 0; min-width: 0; position: relative; }
+.castle-tab:hover { border-color: var(--accent); }
+.castle-tab[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.ct-name { font-family: var(--f-display); font-weight: 800; font-size: 17px; letter-spacing: .04em; }
+.ct-sub { font-size: 12px; opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.castle-tab.cleared::after { content: "済"; position: absolute; top: 6px; right: 8px; font-family: var(--f-display); font-size: 12px;
+  border: 1.5px solid currentColor; border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; opacity: .75; }
+
+main { display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } #castle-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } .panel .scene { order: 3; } .panel .record-box { order: 4; } }
+
+/* ---- board ---- */
+.board-area { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.hand { display: flex; align-items: center; gap: 8px; min-height: 44px; flex-wrap: wrap; }
+.hand-label { font-size: 12px; color: var(--muted); letter-spacing: .06em; white-space: nowrap; width: 6.5em; flex: none; }
+.hand-list { display: flex; gap: 4px; flex-wrap: wrap; }
+.hand-empty { font-size: 12px; color: var(--muted); }
+.hand-pc { font: inherit; border: 0; background: transparent; padding: 2px; cursor: pointer; display: flex; align-items: flex-end; gap: 1px; border-radius: 4px; color: var(--ink); }
+.hand-pc:disabled { cursor: default; }
+.hand-pc.sel { background: var(--mark); }
+.hand-pc .pc { width: 34px; height: 38px; font-size: 21px; }
+.cnt { font-size: 12px; font-weight: 700; }
+.board-frame { background: var(--kaya); padding: 10px 10px 8px 10px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); position: relative; }
+.coords-top { display: grid; grid-template-columns: repeat(9, 1fr); margin-right: 18px; font-size: 11px; color: var(--kaya-line); text-align: center; }
+.board-row { display: flex; }
+#board { display: grid; grid-template-columns: repeat(9, 1fr); border: 2px solid var(--kaya-line); flex: 1; aspect-ratio: 9 / 9.6; max-width: 100%; }
+.coords-side { display: grid; grid-template-rows: repeat(9, 1fr); width: 18px; font-size: 11px; color: var(--kaya-line); text-align: center; align-items: center; }
+.sq { border: 0; border-right: 1px solid var(--kaya-line); border-bottom: 1px solid var(--kaya-line); background: transparent; padding: 0; margin: 0;
+  position: relative; display: grid; place-items: center; cursor: pointer; min-width: 0; min-height: 0; }
+.sq:nth-child(9n) { border-right: 0; }
+.sq:nth-child(n+73) { border-bottom: 0; }
+.sq:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; z-index: 2; }
+.sq.last { background: var(--last); }
+.sq.last-from { background: linear-gradient(var(--last), var(--last)) center / 40% 40% no-repeat; }
+.sq.sel { background: var(--mark); }
+.sq.can::after { content: ""; width: 26%; height: 26%; border-radius: 50%; background: var(--accent); opacity: .55; position: absolute; }
+.sq.can:has(.pc)::after { width: 88%; height: 88%; background: transparent; border: 3px solid var(--accent); opacity: .7; border-radius: 6px; }
+.sq.flash { animation: flash 1.4s ease 2; }
+@keyframes flash { 0%,100% { box-shadow: none; } 40% { box-shadow: inset 0 0 0 4px var(--accent); } }
+/* pentagon pieces */
+.pc { width: 86%; height: 90%; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; color: var(--piece-ink);
+  font-size: clamp(14px, 3.6vw, 25px); line-height: 1; background: var(--piece);
+  clip-path: polygon(50% 0, 86% 14%, 100% 100%, 0 100%, 14% 14%); filter: drop-shadow(0 1px 0 var(--piece-edge)); padding-top: 12%; user-select: none; }
+.pc.gote { transform: rotate(180deg); }
+.pc.prom { color: var(--prom); }
+.pc.king { font-size: clamp(15px, 3.9vw, 27px); }
+.turn-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+#turn { font-size: 13px; color: var(--muted); }
+.board-btns { display: flex; gap: 6px; }
+
+/* ---- panel ---- */
+.panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.scene { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+.scene h2 { font-family: var(--f-display); font-size: 21px; margin: 0 0 2px; letter-spacing: .05em; }
+.scene .note { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+.scene p { margin: 0; }
+#stages { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.stage { display: flex; align-items: center; gap: 6px; padding: 8px 10px; font-size: 14px; color: var(--muted); background: var(--panel); border-right: 1px solid var(--line); min-width: 0; }
+.stage:last-child { border-right: 0; }
+.stage-no { font-family: var(--f-display); font-weight: 800; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid currentColor; font-size: 12px; flex: none; }
+.stage-name { font-weight: 700; white-space: nowrap; }
+.stage.is-now { background: var(--accent); color: var(--paper); }
+.stage.is-done { color: var(--accent); background: var(--accent-soft); }
+.stage.is-done .stage-no { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+
+#qa { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 220px; }
+.qa-head { display: flex; align-items: baseline; gap: 10px; }
+.qa-kind { font-family: var(--f-display); font-weight: 800; font-size: 20px; letter-spacing: .06em; color: var(--accent); }
+.qa-sub { font-size: 12px; color: var(--muted); }
+.qa-goal { margin: 0; font-size: 13px; color: var(--muted); border-left: 3px solid var(--accent-soft); padding-left: 10px; }
+.qa-q { margin: 0; font-size: 17px; font-weight: 700; text-wrap: balance; }
+.qa-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 14px; font-weight: 700; border-radius: 5px; padding: 6px 14px; cursor: pointer; border: 1.5px solid var(--accent); background: var(--accent); color: var(--paper); }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn:focus-visible, .castle-tab:focus-visible, .hand-pc:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.qa-feedback, .qa-past { display: flex; flex-direction: column; gap: 8px; }
+.qa-past { opacity: .78; border-bottom: 1px dashed var(--line); padding-bottom: 10px; }
+.fb { border-radius: 5px; padding: 8px 12px; font-size: 14px; }
+.fb b { margin-right: .3em; }
+.fb.ok { background: var(--ok-bg); color: var(--ink); border-left: 4px solid var(--ok); }
+.fb.ok b:first-child { color: var(--ok); }
+.fb.miss { background: var(--miss-bg); border-left: 4px solid var(--miss); }
+.fb.near { background: var(--hint-bg); border-left: 4px solid var(--hint); }
+.fb.hint { background: var(--hint-bg); border-left: 4px solid var(--hint); }
+.fb.answer { background: var(--accent-soft); border-left: 4px solid var(--accent); }
+.fb.reply { background: transparent; border: 1px solid var(--line); }
+.fb .ex { display: block; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.fin { border-top: 2px solid var(--accent); padding-top: 10px; }
+.fin-title { font-family: var(--f-display); font-weight: 800; font-size: 22px; margin: 0 0 4px; color: var(--accent); }
+.fin p { margin: 0 0 8px; }
+
+.record-box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; }
+.record-box h3 { margin: 0 0 4px; font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: .08em; }
+#record { list-style: none; margin: 0; padding: 0; max-height: 160px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 12px; font-variant-numeric: tabular-nums; }
+#record li { display: flex; gap: 6px; font-size: 14px; align-items: baseline; }
+.rec-n { color: var(--muted); font-size: 11px; width: 1.6em; text-align: right; }
+.rec-tag { font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 0 4px; line-height: 1.4; }
+.rec-g .rec-m { color: var(--muted); }
+
+#promo { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: grid; place-items: center; z-index: 20; padding: 16px; }
+#promo .box { background: var(--panel); border-radius: 8px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+#promo p { margin: 0; font-weight: 700; }
+
+.howto { font-size: 13px; color: var(--muted); }
+.howto summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+.howto ul { margin: 6px 0 0; padding-left: 1.2em; }
+.terms { margin: 6px 0 0; display: grid; gap: 4px; }
+.terms dt { font-weight: 700; color: var(--ink); }
+.terms dd { margin: 0 0 6px; }
+@media (prefers-reduced-motion: reduce) { .sq.flash { animation: none; outline: 3px solid var(--accent); } * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>四間飛車 寄せ道場<small>美濃囲いから、居飛車の囲いを崩して詰ませる</small></h1>
+    <div class="flow" aria-label="練習の流れ"><b>崩し</b>→<b>寄せ</b>→<b>必至</b>→<b>詰み</b></div>
+  </header>
+
+  <nav id="castle-tabs" aria-label="相手の囲い"></nav>
+
+  <main>
+    <section class="board-area" aria-label="将棋盤">
+      <div class="hand"><span class="hand-label">相手の駒台</span><div class="hand-list" id="hand-gote"></div></div>
+      <div class="board-frame">
+        <div class="coords-top" aria-hidden="true"><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+        <div class="board-row">
+          <div id="board" role="grid" aria-label="盤面"></div>
+          <div class="coords-side" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>七</span><span>八</span><span>九</span></div>
+        </div>
+      </div>
+      <div class="hand"><span class="hand-label">自分の駒台</span><div class="hand-list" id="hand-sente"></div></div>
+      <div class="turn-line">
+        <span id="turn" aria-live="polite"></span>
+        <div class="board-btns">
+          <button class="btn ghost" type="button" id="btn-retry">この問題をやり直す</button>
+          <button class="btn ghost" type="button" id="btn-reset">最初から</button>
+        </div>
+      </div>
+      <details class="howto">
+        <summary>4つの段階のおさらい</summary>
+        <dl class="terms">
+          <dt>問：「崩し」とは？</dt><dd>答：囲いの金銀をはがしたり、ずらしたりして、玉の守りを薄くする手。例：▲3一竜（穴熊の金を取る）、▲1一角成（香を取って馬を作る）。</dd>
+          <dt>問：「寄せ」とは？</dt><dd>答：詰めろ（次に詰む形）をかけて、相手の受けを限定する手。例：▲3三角打（取らせて銀を玉から離す）、▲2二銀打・▲1五桂打（逃げ道を順に消す）。</dd>
+          <dt>問：「必至」とは？</dt><dd>答：どう受けても次に詰む形。王手でなくてかまいません。例：▲5一竜、▲3二金打、▲3三角打、▲1三角打。</dd>
+          <dt>問：「詰み」とは？</dt><dd>答：王手の連続で玉の逃げ場をなくすこと。ここは詰将棋そのものです。</dd>
+        </dl>
+      </details>
+      <details class="howto">
+        <summary>操作のしかた</summary>
+        <ul>
+          <li>動かしたい駒をタップ → 行き先をタップ。持ち駒は駒台の駒をタップしてから打つ場所へ。</li>
+          <li>成れるときは「成る／成らない」を選びます。</li>
+          <li>正解すると相手が応じ、次の段階の問題に進みます。お手本以外でも、詰みや必至になる手は正解として受け付けます。</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="panel">
+      <div class="scene">
+        <h2 id="castle-name"></h2>
+        <p class="note" id="castle-note"></p>
+        <p id="scene"></p>
+      </div>
+      <ol id="stages" aria-label="段階"></ol>
+      <div id="qa" aria-live="polite"></div>
+      <div class="record-box">
+        <h3>棋譜</h3>
+        <ol id="record"></ol>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="promo" hidden>
+  <div class="box" role="dialog" aria-label="成りますか">
+    <p>成りますか？</p>
+    <div class="qa-btns">
+      <button class="btn" type="button" id="promo-yes">成る</button>
+      <button class="btn ghost" type="button" id="promo-no">成らない</button>
+    </div>
+  </div>
+</div>
+<script>
+// Shogi engine: legal moves, mate search, hisshi check. Sente=0 (bottom), Gote=1.
+(function (root) {
+  const K = 1, R = 2, B = 3, G = 4, S = 5, N = 6, L = 7, P = 8, PROM = 8;
+  const CH = { K, R, B, G, S, N, L, P };
+  const LETTER = ['', 'K', 'R', 'B', 'G', 'S', 'N', 'L', 'P'];
+  const HAND_TYPES = [R, B, G, S, N, L, P];
+  const KANJI = { 1: '玉', 2: '飛', 3: '角', 4: '金', 5: '銀', 6: '桂', 7: '香', 8: '歩', 10: '竜', 11: '馬', 13: '成銀', 14: '成桂', 15: '成香', 16: 'と' };
+  const SHORT = { 1: '玉', 2: '飛', 3: '角', 4: '金', 5: '銀', 6: '桂', 7: '香', 8: '歩', 10: '龍', 11: '馬', 13: '全', 14: '圭', 15: '杏', 16: 'と' };
+  const NUMK = '〇一二三四五六七八九';
+  const ZEN = '０１２３４５６７８９';
+
+  const GOLD = [[0, -1], [-1, -1], [1, -1], [-1, 0], [1, 0], [0, 1]];
+  const SILV = [[0, -1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const KING = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  const DIAG = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const ORTH = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+  const MOVES = {};
+  MOVES[K] = [KING, []]; MOVES[G] = [GOLD, []]; MOVES[S] = [SILV, []];
+  MOVES[N] = [[[-1, -2], [1, -2]], []]; MOVES[L] = [[], [[0, -1]]]; MOVES[P] = [[[0, -1]], []];
+  MOVES[R] = [[], ORTH]; MOVES[B] = [[], DIAG];
+  MOVES[R + PROM] = [DIAG, ORTH]; MOVES[B + PROM] = [ORTH, DIAG];
+  MOVES[S + PROM] = MOVES[N + PROM] = MOVES[L + PROM] = MOVES[P + PROM] = [GOLD, []];
+
+  // square index: f 1..9, r 1..9 -> (r-1)*9 + (f-1)
+  const idx = (f, r) => (r - 1) * 9 + (f - 1);
+  const fileOf = i => (i % 9) + 1, rankOf = i => Math.floor(i / 9) + 1;
+  const owner = v => v >> 5, ptype = v => v & 31;
+  const mk = (o, t) => (o << 5) | t;
+
+  function parseSfen(sf) {
+    const parts = sf.trim().split(/\s+/);
+    const board = new Array(81).fill(0);
+    const rows = parts[0].split('/');
+    rows.forEach((row, ri) => {
+      let f = 9, prom = false;
+      for (const c of row) {
+        if (/\d/.test(c)) { f -= +c; continue; }
+        if (c === '+') { prom = true; continue; }
+        const o = c === c.toUpperCase() ? 0 : 1;
+        board[idx(f, ri + 1)] = mk(o, CH[c.toUpperCase()] + (prom ? PROM : 0));
+        prom = false; f--;
+      }
+    });
+    const hands = [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]];
+    const hs = parts[2] || '-';
+    if (hs !== '-') {
+      let n = 0;
+      for (const c of hs) {
+        if (/\d/.test(c)) { n = n * 10 + (+c); continue; }
+        const o = c === c.toUpperCase() ? 0 : 1;
+        hands[o][CH[c.toUpperCase()]] += n || 1; n = 0;
+      }
+    }
+    return { board, hands, turn: parts[1] === 'w' ? 1 : 0 };
+  }
+
+  function toSfen(pos) {
+    const rows = [];
+    for (let r = 1; r <= 9; r++) {
+      let s = '', e = 0;
+      for (let f = 9; f >= 1; f--) {
+        const v = pos.board[idx(f, r)];
+        if (!v) { e++; continue; }
+        if (e) { s += e; e = 0; }
+        let t = ptype(v), pr = '';
+        if (t > PROM) { pr = '+'; t -= PROM; }
+        const ch = LETTER[t];
+        s += pr + (owner(v) === 0 ? ch : ch.toLowerCase());
+      }
+      if (e) s += e;
+      rows.push(s);
+    }
+    let hs = '';
+    for (const o of [0, 1]) for (const t of HAND_TYPES) {
+      const n = pos.hands[o][t];
+      if (n) hs += (n > 1 ? n : '') + (o === 0 ? LETTER[t] : LETTER[t].toLowerCase());
+    }
+    return rows.join('/') + ' ' + (pos.turn ? 'w' : 'b') + ' ' + (hs || '-') + ' 1';
+  }
+
+  // Zobrist-style hash (two 32-bit lanes)
+  let seed = 0x9e3779b9;
+  const rnd = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return seed >>> 0; };
+  const ZA = new Uint32Array(81 * 64), ZB = new Uint32Array(81 * 64), HA = new Uint32Array(2 * 9 * 19), HB = new Uint32Array(2 * 9 * 19);
+  for (let i = 0; i < ZA.length; i++) { ZA[i] = rnd(); ZB[i] = rnd(); }
+  for (let i = 0; i < HA.length; i++) { HA[i] = rnd(); HB[i] = rnd(); }
+  const keyOf = pos => {
+    let a = pos.turn ? 0x5bd1e995 : 0, b = pos.turn ? 0x27d4eb2f : 0;
+    const bd = pos.board;
+    for (let i = 0; i < 81; i++) { const v = bd[i]; if (v) { a ^= ZA[i * 64 + v]; b ^= ZB[i * 64 + v]; } }
+    for (let o = 0; o < 2; o++) { const h = pos.hands[o]; for (let t = 2; t <= 8; t++) { const n = h[t]; if (n) { a ^= HA[(o * 9 + t) * 19 + n]; b ^= HB[(o * 9 + t) * 19 + n]; } } }
+    return (a >>> 0) * 2097152 + (b >>> 11);
+  };
+
+  function attacksFrom(board, i, v, out) {
+    const o = owner(v), t = ptype(v), [st, sl] = MOVES[t];
+    const f = fileOf(i), r = rankOf(i), sg = o === 0 ? 1 : -1;
+    for (const [df, dr] of st) {
+      const nf = f + df * sg, nr = r + dr * sg;
+      if (nf >= 1 && nf <= 9 && nr >= 1 && nr <= 9) out.push(idx(nf, nr));
+    }
+    for (const [df, dr] of sl) {
+      let nf = f + df * sg, nr = r + dr * sg;
+      while (nf >= 1 && nf <= 9 && nr >= 1 && nr <= 9) {
+        const j = idx(nf, nr); out.push(j);
+        if (board[j]) break;
+        nf += df * sg; nr += dr * sg;
+      }
+    }
+    return out;
+  }
+
+  function kingSq(board, o) {
+    const kv = mk(o, K);
+    for (let i = 0; i < 81; i++) if (board[i] === kv) return i;
+    return -1;
+  }
+  function attacked(board, sq, by) {
+    const tmp = [];
+    for (let i = 0; i < 81; i++) {
+      const v = board[i];
+      if (!v || owner(v) !== by) continue;
+      tmp.length = 0; attacksFrom(board, i, v, tmp);
+      if (tmp.includes(sq)) return true;
+    }
+    return false;
+  }
+  // fast attack test: look outward from sq
+  const HAS = {};
+  for (const t in MOVES) {
+    const [st, sl] = MOVES[t];
+    HAS[t] = { st: new Set(st.map(([a, b]) => a + ',' + b)), sl: new Set(sl.map(([a, b]) => a + ',' + b)) };
+  }
+  function attackedFast(board, sq, by) {
+    const f = fileOf(sq), r = rankOf(sq), sg = by === 0 ? 1 : -1;
+    for (const [df, dr] of KING) {
+      let nf = f + df, nr = r + dr, k = 1;
+      while (nf >= 1 && nf <= 9 && nr >= 1 && nr <= 9) {
+        const v = board[idx(nf, nr)];
+        if (v) {
+          if (owner(v) === by) {
+            const h = HAS[ptype(v)], key = (-df * sg) + ',' + (-dr * sg);
+            if (h.sl.has(key) || (k === 1 && h.st.has(key))) return true;
+          }
+          break;
+        }
+        nf += df; nr += dr; k++;
+      }
+    }
+    // knights: a knight of `by` at (f - df*sg, r - dr*sg) for its jumps (df,dr)
+    for (const df of [-1, 1]) {
+      const nf = f - df * sg, nr = r + 2 * sg;
+      if (nf >= 1 && nf <= 9 && nr >= 1 && nr <= 9 && board[idx(nf, nr)] === mk(by, N)) return true;
+    }
+    return false;
+  }
+  function inCheck(pos, o) {
+    const k = kingSq(pos.board, o);
+    return k >= 0 && attackedFast(pos.board, k, 1 - o);
+  }
+  function canPromote(o, from, to) {
+    const rf = rankOf(from), rt = rankOf(to);
+    return o === 0 ? (rf <= 3 || rt <= 3) : (rf >= 7 || rt >= 7);
+  }
+  function mustPromote(o, t, to) {
+    const r = o === 0 ? rankOf(to) : 10 - rankOf(to);
+    if ((t === P || t === L) && r === 1) return true;
+    if (t === N && r <= 2) return true;
+    return false;
+  }
+
+  // move: {from:-1|idx, to, drop:type|0, promote:bool}
+  function pseudoMoves(pos) {
+    const me = pos.turn, b = pos.board, out = [], tmp = [];
+    for (let i = 0; i < 81; i++) {
+      const v = b[i];
+      if (!v || owner(v) !== me) continue;
+      const t = ptype(v);
+      tmp.length = 0; attacksFrom(b, i, v, tmp);
+      for (const j of tmp) {
+        const x = b[j];
+        if (x && owner(x) === me) continue;
+        if (t < PROM && t !== K && t !== G && canPromote(me, i, j)) {
+          out.push({ from: i, to: j, drop: 0, promote: true });
+          if (!mustPromote(me, t, j)) out.push({ from: i, to: j, drop: 0, promote: false });
+        } else out.push({ from: i, to: j, drop: 0, promote: false });
+      }
+    }
+    const h = pos.hands[me];
+    let pawnFiles = null;
+    for (const t of HAND_TYPES) {
+      if (!h[t]) continue;
+      if (t === P) {
+        pawnFiles = new Set();
+        for (let i = 0; i < 81; i++) if (b[i] === mk(me, P)) pawnFiles.add(fileOf(i));
+      }
+      for (let j = 0; j < 81; j++) {
+        if (b[j]) continue;
+        if (t === P && pawnFiles.has(fileOf(j))) continue;
+        if (mustPromote(me, t, j)) continue;
+        out.push({ from: -1, to: j, drop: t, promote: false });
+      }
+    }
+    return out;
+  }
+
+  function doMove(pos, m) {
+    const b = pos.board.slice();
+    const hands = [pos.hands[0].slice(), pos.hands[1].slice()];
+    const me = pos.turn;
+    let captured = 0;
+    if (m.from < 0) { hands[me][m.drop]--; b[m.to] = mk(me, m.drop); }
+    else {
+      const v = b[m.from]; b[m.from] = 0;
+      const x = b[m.to];
+      if (x) { captured = ptype(x); let ct = captured; if (ct > PROM) ct -= PROM; hands[me][ct]++; }
+      b[m.to] = m.promote ? v + PROM : v;
+    }
+    return { board: b, hands, turn: 1 - me, captured };
+  }
+
+  function legalMoves(pos, checkUchifu = true) {
+    const me = pos.turn, res = [];
+    for (const m of pseudoMoves(pos)) {
+      const n = doMove(pos, m);
+      if (inCheck(n, me)) continue;
+      if (checkUchifu && m.from < 0 && m.drop === P) {
+        const k = kingSq(n.board, 1 - me);
+        const fwd = me === 0 ? -1 : 1;
+        if (k >= 0 && k === idx(fileOf(m.to), rankOf(m.to) + fwd)) {
+          if (legalMoves(n, false).length === 0) continue;
+        }
+      }
+      res.push([m, n]);
+    }
+    return res;
+  }
+  const givesCheck = n => inCheck(n, n.turn);
+
+  // checking moves only (legal), much faster than filtering legalMoves
+  function checkMoves(pos) {
+    const me = pos.turn, b = pos.board, res = [], tmp = [];
+    const ek = kingSq(b, 1 - me);
+    if (ek < 0) return res;
+    // board moves
+    for (let i = 0; i < 81; i++) {
+      const v = b[i];
+      if (!v || owner(v) !== me) continue;
+      const t = ptype(v);
+      tmp.length = 0; attacksFrom(b, i, v, tmp);
+      for (const j of tmp) {
+        const x = b[j];
+        if (x && owner(x) === me) continue;
+        const opts = [];
+        if (t < PROM && t !== K && t !== G && canPromote(me, i, j)) { opts.push(true); if (!mustPromote(me, t, j)) opts.push(false); }
+        else opts.push(false);
+        for (const pr of opts) {
+          const m = { from: i, to: j, drop: 0, promote: pr };
+          const n = doMove(pos, m);
+          if (!inCheck(n, 1 - me)) continue;
+          if (inCheck(n, me)) continue;
+          res.push([m, n]);
+        }
+      }
+    }
+    // drops: squares from which the dropped piece attacks the enemy king
+    const h = pos.hands[me];
+    for (const t of HAND_TYPES) {
+      if (!h[t]) continue;
+      tmp.length = 0; attacksFrom(b, ek, mk(1 - me, t), tmp);
+      for (const j of tmp) {
+        if (b[j]) continue;
+        if (mustPromote(me, t, j)) continue;
+        if (t === P) {
+          let nifu = false;
+          for (let r = 1; r <= 9; r++) if (b[idx(fileOf(j), r)] === mk(me, P)) { nifu = true; break; }
+          if (nifu) continue;
+        }
+        const m = { from: -1, to: j, drop: t, promote: false };
+        const n = doMove(pos, m);
+        if (inCheck(n, me)) continue;
+        if (t === P && legalMoves(n, false).length === 0) continue; // uchifuzume
+        res.push([m, n]);
+      }
+    }
+    return res;
+  }
+
+  // ---- search ----
+  class Solver {
+    constructor() { this.mc = new Map(); this.ec = new Map(); this.nodes = 0; }
+    mate(pos, d) { // attacker to move, checks only
+      if (d <= 0) return false;
+      const k = keyOf(pos) + '#' + d;
+      if (this.mc.has(k)) return this.mc.get(k);
+      this.nodes++;
+      let r = false;
+      for (const [m, n] of checkMoves(pos)) {
+        if (this.evade(n, d - 1)) { r = true; break; }
+      }
+      this.mc.set(k, r); return r;
+    }
+    evade(pos, d) { // defender to move, true if mated within d
+      const k = keyOf(pos) + '#' + d;
+      if (this.ec.has(k)) return this.ec.get(k);
+      const ms = legalMoves(pos);
+      let r;
+      if (!ms.length) r = true;
+      else if (d <= 0) r = false;
+      else { r = true; for (const [m, n] of ms) if (!this.mate(n, d - 1)) { r = false; break; } }
+      this.ec.set(k, r); return r;
+    }
+    mateLen(pos, maxd = 11) {
+      for (let d = 1; d <= maxd; d += 2) if (this.mate(pos, d)) return d;
+      return 0;
+    }
+    // defender to move (not mated yet): plies until mate with best defense (<=maxd), 0 if none
+    evadeLen(pos, maxd = 10) {
+      for (let d = 0; d <= maxd; d += 2) if (this.evade(pos, d)) return d;
+      return 0;
+    }
+    isTsumero(after, d = 7) {
+      const p = { board: after.board, hands: after.hands, turn: 1 - after.turn };
+      if (inCheck(p, after.turn)) return 0;
+      return this.mateLen(p, d);
+    }
+    // defender to move. true if every reply loses: either mate follows (<=d) or counter-checks are answered keeping hisshi
+    hisshi(pos, d = 7, budget = 2, collect = null) {
+      const att = 1 - pos.turn;
+      let ok = true;
+      for (const [m, n] of legalMoves(pos)) {
+        let good;
+        if (inCheck(n, att)) {
+          good = false;
+          if (budget > 0) for (const [m2, n2] of legalMoves(n)) {
+            if (givesCheck(n2)) { if (this.evade(n2, d - 1)) { good = true; break; } continue; }
+            if (this.hisshi(n2, d, budget - 1)) { good = true; break; }
+          }
+        } else good = this.mate(n, d);
+        if (!good) { ok = false; if (collect) collect.push(m); else break; }
+      }
+      return ok;
+    }
+  }
+
+  function moveKey(m) { return m.from + ':' + m.to + ':' + m.drop + ':' + (m.promote ? 1 : 0); }
+  function sameMove(a, b) { return a.from === b.from && a.to === b.to && a.drop === b.drop && !!a.promote === !!b.promote; }
+
+  // usi-ish notation: "7g7f", "P*5e", "8h2b+"
+  function parseUsi(s) {
+    if (s[1] === '*') return { from: -1, to: idx(+s[2], s.charCodeAt(3) - 96), drop: CH[s[0]], promote: false };
+    return { from: idx(+s[0], s.charCodeAt(1) - 96), to: idx(+s[2], s.charCodeAt(3) - 96), drop: 0, promote: s.endsWith('+') };
+  }
+  function toUsi(m) {
+    const sq = i => fileOf(i) + String.fromCharCode(96 + rankOf(i));
+    if (m.from < 0) return LETTER[m.drop] + '*' + sq(m.to);
+    return sq(m.from) + sq(m.to) + (m.promote ? '+' : '');
+  }
+  function moveName(pos, m, prev) {
+    const mark = pos.turn === 0 ? '▲' : '△';
+    let dst = (prev && prev.to === m.to) ? '同　' : ZEN[fileOf(m.to)] + NUMK[rankOf(m.to)];
+    if (m.from < 0) return mark + dst + KANJI[m.drop] + '打';
+    const v = pos.board[m.from], t = ptype(v);
+    let s = mark + dst + KANJI[t];
+    if (m.promote) s += '成';
+    else if (t < PROM && t !== K && t !== G && canPromote(pos.turn, m.from, m.to)) s += '不成';
+    // disambiguation: if another same piece can move there, append from-square
+    let amb = false;
+    for (const [mm] of legalMoves(pos)) {
+      if (mm.from >= 0 && mm.from !== m.from && mm.to === m.to && pos.board[mm.from] === v) { amb = true; break; }
+    }
+    if (amb) s += '(' + fileOf(m.from) + rankOf(m.from) + ')';
+    return s;
+  }
+
+  const api = { K, R, B, G, S, N, L, P, PROM, KANJI, SHORT, idx, fileOf, rankOf, owner, ptype, mk,
+    parseSfen, toSfen, keyOf, legalMoves, checkMoves, doMove, inCheck, givesCheck, canPromote, mustPromote,
+    Solver, moveKey, sameMove, parseUsi, toUsi, moveName, kingSq, attacked, HAND_TYPES };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.ShogiEngine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+window.PROBLEMS = [];
+window.PROBLEMS.push({
+  id: 'fune', castle: '舟囲い', tag: '4一の金が弱点',
+  note: '玉3二・金4一・金5二（銀は5三に出ています）。4一の金には玉のひもしかついていないため、横からの竜の攻めに弱い囲いです。',
+  scene: '急戦の銀を取り、飛車交換から8一に竜を作って桂と香を拾いました。相手の飛車も6九に打ち込まれていますが、美濃囲いはまだ堅い局面です。7七の角が1一の香まで通っています。',
+  sfen: '1+R3g1nl/4g1k2/p1p1sp1pp/4p1p2/9/P1P1PP3/1PBS2PPP/4G1SK1/LN1r1G1NL b BSNL3P 1',
+  stages: [
+    { kind: '崩し', goal: '玉のすぐ後ろ（1一の香・2一の桂）は、舟囲いでいちばん手薄な場所です。',
+      steps: [{
+        usi: '7g1a+',
+        q: '問い：7七の角の利きを斜めにたどると、タダで取れる駒があります。どれでしょう？',
+        hint: '6六・5五・4四・3三・2二と進むと、その先に相手の駒があります。',
+        explain: '▲1一角成で香をタダで取り、馬を作ります。馬は2一の桂に当たり、▲2一馬からの詰み筋も生まれました。',
+        ex: '例：相手が何もしなければ ▲2一馬（桂を取る）から9手で詰みます。',
+        reply: '5b4b', replyNote: '△4二金と金を玉の横に寄せて、守りを固めました。',
+      }] },
+    { kind: '寄せ', goal: '寄せの段階です。1手詰めをねらう詰めろで、相手の受けを限定します。',
+      steps: [{
+        usi: 'B*1b',
+        q: '問い：次に ▲2一角成 で詰む形を作りたい。持ち駒の角をどこに打つ？',
+        hint: '2一に利く場所で、相手に取られないマスを探しましょう。馬のとなりです。',
+        explain: '▲1二角打は ▲2一角成 までの1手詰めをねらう詰めろです。',
+        ex: '例：受けは△5一金（4一の金を寄せて竜の横利きを止め、4一を玉の逃げ道にする）しかありません。',
+        reply: '4a5a', replyNote: '△5一金。弱点の4一の金が、竜の前に出てきました。',
+      }] },
+    { kind: '必至', goal: '必至は「どう受けても次に詰む」形です。王手でなくてかまいません。',
+      steps: [{
+        usi: '8a5a',
+        q: '問い：竜の前に出てきた金を、どう料理する？',
+        hint: '5一の金にはひもがついていません。',
+        explain: '▲5一竜と金を取って必至です。次に ▲2一竜・▲2一角成・▲3一金打 のどれかで詰みます。',
+        ex: '例：△3三桂と逃げ道を作っても ▲2一馬 で詰み。3か所の詰みを同時に受ける手はありません。',
+        reply: '2a3c', replyNote: '△3三桂と、玉の逃げ道を作ってきました。',
+      }] },
+    { kind: '詰み', goal: '最後は詰将棋です。王手の連続で詰ませましょう。',
+      steps: [{
+        usi: '1a2a',
+        q: '問い：1手で詰ませてください。',
+        hint: '桂がいなくなった2一のマスに注目しましょう。',
+        explain: '▲2一馬まで。馬は1二の角が支えているので取れず、3一・4一は竜、2二は馬が押さえています。',
+      }] },
+  ],
+  summary: '舟囲いは「4一の金」と「玉の背後」が急所。角で香を取って馬を作り、角打ちの詰めろで金を引き出して、竜で取って必至をかけました。',
+});
+(window.PROBLEMS = window.PROBLEMS || []).push({
+  id: 'anaguma', castle: '居飛車穴熊', tag: '2二の銀のピン',
+  note: '玉1一・香1二・桂2一・銀2二・金3一（もう一枚の金は5二）。王手がかかりにくいので、金銀をはがしてから寄せます。',
+  scene: '飛車交換のあと8一に打ち下ろして香と桂を拾い、竜ができました。相手の飛車も6九に打ち込まれていますが、美濃囲いはまだ堅い局面です。7七の角が1一の玉まで一直線に利いているのがポイントです。',
+  sfen: '1+R4gnk/4g2sl/p1p2p1p1/4p1p1p/9/P1P1PP3/1PBS2PPP/4G1SK1/LN1r1G1NL b BSNL3P 1',
+  stages: [
+    { kind: '崩し', goal: '穴熊は王手がかかりにくい囲いです。まず金銀を一枚はがして、守りを薄くします。',
+      steps: [{
+        usi: '8a3a',
+        q: '問い：2二の銀は今、ある理由で動けません。それを利用して、穴熊の金をタダで取る手は？',
+        hint: '7七の角から1一の玉まで、斜めの線を見てみましょう。2二の銀はその線の上にいます。',
+        explain: '▲3一竜で金をタダで取ります。2二の銀は7七の角に「ピン」されているので、△同銀とは取れません。',
+        ex: '例：このあと相手が何もしなければ ▲2二竜 で詰み。△4四歩と角道を止めても ▲4四角 と取り返して必至です。',
+        reply: '5d5e', replyNote: '△5五歩と角道を止めて、2二の銀のピンをはずしました。これが最善の受けです。',
+        alt: [{ usi: '7g2b+', note: '銀は取れますが△同金で角がなくなり、攻めが細くなります。竜で金を取るほうが得です。' }],
+      }] },
+    { kind: '寄せ', goal: '寄せは詰めろ（次に詰む形）で相手の手を限定し、必至につなげる段階です。',
+      steps: [{
+        usi: 'B*3c',
+        q: '問い：2二の銀を、玉のそばから引きはがす捨て駒はどこに打つ？',
+        hint: '3三に駒を打つと、2二の銀は取るしかありません。2一の桂は竜にピンされていて取れません。',
+        explain: '▲3三角打は ▲2二竜 の詰めろ。2一の桂は3一の竜にピンされているので、△同銀と取るしかありません。',
+        ex: '例：△3三同銀で2二が空き、3二・2一に金駒を打ち込めるようになります。他の受けはすべて1手で詰みます。',
+        reply: '2b3c', replyNote: '△同銀。2二の銀が玉から離れました。',
+      }] },
+    { kind: '必至', goal: '必至は「どう受けても次に詰む」形です。王手でなくてかまいません。',
+      steps: [{
+        usi: 'G*3b',
+        q: '問い：玉のまわりの2一と2二に同時に利かせて、受けのない形を作る一手は？',
+        hint: '持ち駒の金を、竜のとなりに打ってみましょう。',
+        explain: '▲3二金打で必至です。次に ▲2一竜（桂を取って王手）か ▲2一金 で詰みます。',
+        ex: '例：△1三香と逃げ道を作っても ▲2一竜で詰み。△3九角と王手をされたら ▲1八玉 とかわせば、詰みは消えません。',
+        reply: '1b1c', replyNote: '△1三香と1二に逃げ道を作りましたが、間に合いません。',
+      }] },
+    { kind: '詰み', goal: '最後は詰将棋です。王手の連続で詰ませましょう。',
+      steps: [{
+        usi: '3a2a',
+        q: '問い：1手で詰ませてください。',
+        hint: '竜で桂を取りながら王手をかけると、玉の逃げ道はどこにもありません。',
+        explain: '▲2一竜まで。1二は竜、2二は金が押さえています。',
+      }] },
+  ],
+  summary: '穴熊は「ピン」と「捨て駒」で金銀をはがすのがコツ。竜で金を取り、角で銀を吊り上げ、金打ちで必至をかけました。',
+});
+window.PROBLEMS.push({
+  id: 'elmo', castle: 'エルモ囲い', tag: '横に強いので端から',
+  note: '玉3二・銀4二・金3一・金5二。3一の金に4二の銀のひもがついていて、竜の横からの攻めでは崩れにくい形です。',
+  scene: '急戦の銀を取り、飛車交換から8一に竜を作って桂と香を拾いました。相手の飛車も6九に打ち込まれていますが、美濃囲いはまだ堅い局面です。7七の角が1一の香まで通っています。',
+  sfen: '1+R4gnl/4gsk2/p1p2p1pp/4p1p2/9/P1P1PP3/1PBS2PPP/4G1SK1/LN1r1G1NL b BSNL3P 1',
+  stages: [
+    { kind: '崩し', goal: 'エルモ囲いは横からの攻めに強い囲いです。竜で金をねらうより、守りの手薄な端から崩します。',
+      steps: [{
+        usi: '7g1a+',
+        q: '問い：7七の角の利きを斜めにたどると、タダで取れる駒があります。どれでしょう？',
+        hint: '6六・5五・4四・3三・2二と進んだ、その先です。',
+        explain: '▲1一角成で香をタダで取り、馬を作ります。馬は2一の桂と2二のすき間に利いて、玉の背後をねらいます。',
+        ex: '例：竜で3一の金をねらっても、金には4二の銀と玉のひもがついています。だから守りの薄い端から攻めます。',
+        reply: '3a4a', replyNote: '△4一金と、金を竜の前に出して一段目の横利きを止めました。',
+      }] },
+    { kind: '寄せ', goal: '寄せは詰めろの連続で、相手の受けを限定していく段階です。ここでは2手続けて詰めろをかけます。',
+      steps: [
+        { usi: 'S*2b',
+          q: '問い：馬と玉のあいだのすき間に銀を打ち込んで、▲2一馬の1手詰めをねらおう。どこに打つ？',
+          hint: '1一の馬から斜めに一つ進んだマスです。',
+          explain: '▲2二銀打は ▲2一馬 までの詰めろです。',
+          ex: '例：△3一銀と受けると ▲3三角打 で必至になります。そこで相手は△2四歩と玉の逃げ道を作ります。',
+          reply: '2c2d', replyNote: '△2四歩。2三を玉の逃げ道にしました。' },
+        { usi: 'N*1e',
+          q: '問い：△2四歩で開いた逃げ道（2三）をふさぎながら、もう一度詰めろをかける桂打ちは？',
+          hint: '桂は2つ前の斜めに利きます。2三に利く場所を探しましょう。',
+          explain: '▲1五桂打で2三の逃げ道をおさえます。次は ▲2一馬 か ▲2三角打 で詰みです。',
+          ex: '例：ほかの受けでは ▲2一馬 からすぐに詰みます。いちばん粘るのは △3一銀 です。',
+          reply: '4b3a', replyNote: '△3一銀と銀を下げて、2二の銀に当ててきました。' },
+      ] },
+    { kind: '必至', goal: '必至は「どう受けても次に詰む」形です。王手でなくてかまいません。',
+      steps: [{
+        usi: 'B*3c',
+        q: '問い：玉の頭に持ち駒の角を打って、受けのない形にしよう。',
+        hint: '玉のすぐ前（3三）です。2二の銀が支えているので取られません。',
+        explain: '▲3三角打で必至です。次に ▲2一馬 か ▲2一銀不成 で詰みます。',
+        ex: '例：△5一金と逃げ道を作っても、▲2一馬 △4一玉 ▲3一馬 まで3手で詰みます。',
+        reply: '4a5a', replyNote: '△5一金と、4一を玉の逃げ道にしました。',
+      }] },
+    { kind: '詰み', goal: '最後は3手詰めです。王手の連続で詰ませましょう。',
+      steps: [
+        { usi: '1a2a', q: '問い：1手目。桂を取りながら王手をかけよう。',
+          hint: '1一の馬を使います。',
+          explain: '▲2一馬。玉は△4一玉と逃げるしかありません。',
+          reply: '3b4a' },
+        { usi: '2a3a', q: '問い：最後の1手。',
+          hint: '玉の横の銀を取ります。',
+          explain: '▲3一馬まで。3手詰めです。' },
+      ] },
+  ],
+  summary: 'エルモ囲いは横に強いぶん、端と玉の背後が弱点。角で香を取って馬を作り、銀と桂の詰めろで逃げ道を消し、角打ちで必至をかけました。',
+});
+window.PROBLEMS.push({
+  id: 'tenshu', castle: '天守閣美濃', tag: '端と玉の背後',
+  note: '玉2三・銀3二・金4一・金5二。玉が一段高い位置にいて、横からの攻めには強い形です。そのぶん1一・2二のあたりが手薄です。',
+  scene: '飛車交換から8一に竜を作り、桂と香を拾いました。角交換で手に入れた角も持っています。相手の飛車は6九に打ち込まれていますが、まだ美濃囲いに迫る手はありません。',
+  sfen: '1+R3g1nl/4g1s2/p1p2p1k1/4p1ppp/9/P1P1PP3/1PBSS1PPP/4G1SK1/LN1r1G1NL b BNL3P 1',
+  stages: [
+    { kind: '崩し', goal: '天守閣美濃は横からの攻めに強い囲いです。まず囲いのすみ（1一の香）から崩します。',
+      steps: [{
+        usi: '7g1a+',
+        q: '問い：7七の角の利きを斜めにたどると、タダで取れる駒があります。どれでしょう？',
+        hint: '7七から 6六・5五・4四・3三・2二… と斜めに数えてみましょう。途中に駒はありません。',
+        explain: '▲1一角成で香をタダで取り、馬を作ります。馬は1二・2一・2二に利き、玉の背後をおさえます。',
+        ex: '例：馬は2一の桂にも当たっています。相手は守りを固めるしかありません。',
+        reply: '5b4b', replyNote: '△4二金と、金を玉のほうへ寄せて守りを固めました。',
+      }] },
+    { kind: '寄せ', goal: '寄せの段階です。守りのかなめの金を一枚へらして、次の必至につなげます。',
+      steps: [{
+        usi: '8a4a',
+        q: '問い：竜を切ってでも取りたい、守りの金はどれ？',
+        hint: '竜は横に何マスでも動けます。一段目を右へたどってみましょう。',
+        explain: '▲4一竜と金を取ります。次に ▲1三金打や ▲2二金打 から5手で詰む「詰めろ」です。',
+        ex: '例：△同銀と取ると ▲1二角 △3二玉 ▲2一角成 △2三玉 ▲2二馬 まで詰み。だから相手は△同金と取るしかありません。',
+        reply: '4b4a', replyNote: '△同金と竜を取りました。こちらの持ち駒に金が入っています。',
+      }] },
+    { kind: '必至', goal: '必至は「どう受けても次に詰む」形です。王手でなくてかまいません。',
+      steps: [{
+        usi: 'B*1c',
+        q: '問い：次に ▲2二馬 で詰む形を作りたい。玉の逃げ道を先に押さえる角打ちはどこ？',
+        hint: '玉の右どなり（1筋）に角を打ってみましょう。そこから2二にも利きが通ります。',
+        explain: '▲1三角打で必至です。次に ▲2二馬（または ▲2二角成）で詰みます。',
+        ex: '例：△1三同桂と角を取っても7手で詰み、△3一金と受けても5手で詰みます。じつはこの局面には9手詰めもありますが、長い詰みを読み切るより、必至で確実に勝つほうが実戦的です。',
+        reply: '2a1c', replyNote: '△同桂と角を取って、いちばん長く粘る受けをしてきました。',
+      }] },
+    { kind: '詰み', goal: '最後は7手詰めです。持ち駒は金・桂・香・歩。王手の連続で詰ませましょう。',
+      steps: [
+        { usi: 'G*2b', q: '問い：1手目。玉の真横に打つ王手は？',
+          hint: '2二は1一の馬が利いているので、玉は取れません。',
+          explain: '▲2二金打。馬が利いているので取れず、△3三玉と逃げるしかありません。',
+          reply: '2c3c' },
+        { usi: '2b3b', q: '問い：3手目。玉の横の銀を取りながら王手をかけよう。',
+          hint: '2二の金を横に動かします。',
+          explain: '▲3二金と銀を取って王手。△同玉と取るのがいちばん粘る手です。',
+          reply: '3c3b' },
+        { usi: 'S*3c', q: '問い：5手目。いま取った銀を、玉の頭に打とう。',
+          hint: '玉のすぐ前（下）のマスです。',
+          explain: '▲3三銀打。△2三玉と逃げます。',
+          reply: '3b2c' },
+        { usi: '1a2b', q: '問い：最後の1手。',
+          hint: '1一の馬を使います。',
+          explain: '▲2二馬まで。7手詰めです。' },
+      ] },
+  ],
+  summary: '天守閣美濃は「端の香」と「玉の背後」が急所。角で香を取って馬を作り、竜を切って金をはがし、角打ちで必至をかけました。',
+});
+window.HISSHI_ALTS = {"fune":[],"anaguma":[{"usi":"S*3b","reply":"1b1c","len":1}],"elmo":[],"tenshu":[]};
+window.PROBLEMS.forEach(p => p.stages.forEach(s => { if (s.kind === "必至") s.steps.forEach(st => { st.hisshiAlts = (window.HISSHI_ALTS[p.id] || []); }); }));
+
+// ===== 寄せ道場 app =====
+(function () {
+  const E = window.ShogiEngine;
+  const PROBLEMS = window.PROBLEMS;
+  const STAGE_NAMES = ['崩し', '寄せ', '必至', '詰み'];
+  const $ = s => document.querySelector(s);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+  let st = null; // state
+  let solver = new E.Solver();
+
+  function loadProblem(pi) {
+    const pr = PROBLEMS[pi];
+    solver = new E.Solver();
+    st = {
+      pi, pr, pos: E.parseSfen(pr.sfen), stage: 0, step: 0, sel: null, last: null,
+      busy: false, misses: 0, done: false, dynamic: null, history: [], snapshots: [], log: [],
+      hintShown: false,
+    };
+    st.snapshots.push(snap());
+    document.querySelectorAll('.castle-tab').forEach((b, i) => b.setAttribute('aria-pressed', i === pi ? 'true' : 'false'));
+    $('#castle-name').textContent = pr.castle;
+    $('#castle-note').textContent = pr.note;
+    $('#scene').textContent = pr.scene;
+    $('#record').innerHTML = '';
+    renderAll();
+    showQuestion();
+    try { localStorage.setItem('yose-dojo-last', String(pi)); } catch (e) {}
+  }
+
+  function snap() { return { pos: st.pos, stage: st.stage, step: st.step, last: st.last, logLen: st.log.length, dynamic: st.dynamic }; }
+
+  function curStage() { return st.pr.stages[st.stage]; }
+  function curStep() { const s = curStage(); return s ? s.steps[st.step] : null; }
+
+  // ---------- rendering ----------
+  function renderAll() { renderBoard(); renderHands(); renderStages(); renderRecord(); }
+
+  function renderStages() {
+    const wrap = $('#stages'); wrap.innerHTML = '';
+    st.pr.stages.forEach((s, i) => {
+      const li = el('li', 'stage');
+      if (i < st.stage || st.done) li.classList.add('is-done');
+      if (i === st.stage && !st.done) li.classList.add('is-now');
+      if (st.dynamic && i >= st.stage) li.classList.toggle('is-now', i === st.stage);
+      li.append(el('span', 'stage-no', String(i + 1)), el('span', 'stage-name', s.kind));
+      wrap.append(li);
+    });
+  }
+
+  function renderBoard() {
+    const b = $('#board'); b.innerHTML = '';
+    const legalTargets = new Set();
+    if (st.sel) for (const [m] of legalFor(st.sel)) legalTargets.add(m.to);
+    for (let r = 1; r <= 9; r++) for (let f = 9; f >= 1; f--) {
+      const i = E.idx(f, r);
+      const cell = el('button', 'sq');
+      cell.type = 'button';
+      cell.dataset.i = i;
+      const v = st.pos.board[i];
+      let label = `${f}${'〇一二三四五六七八九'[r]}`;
+      if (v) {
+        const t = E.ptype(v), o = E.owner(v);
+        const pc = el('span', 'pc' + (o === 1 ? ' gote' : '') + (t > E.PROM ? ' prom' : '') + (t === E.K ? ' king' : ''));
+        pc.textContent = (t === E.K && o === 0) ? '玉' : (t === E.K ? '王' : E.SHORT[t]);
+        cell.append(pc);
+        label += (o === 0 ? ' 先手' : ' 後手') + E.KANJI[t];
+      }
+      if (st.last && (st.last.to === i)) cell.classList.add('last');
+      if (st.last && st.last.from === i) cell.classList.add('last-from');
+      if (st.sel && st.sel.from === i) cell.classList.add('sel');
+      if (legalTargets.has(i)) cell.classList.add('can');
+      cell.setAttribute('aria-label', label);
+      cell.addEventListener('click', () => onSquare(i));
+      b.append(cell);
+    }
+  }
+
+  function renderHands() {
+    for (const o of [0, 1]) {
+      const h = $(o === 0 ? '#hand-sente' : '#hand-gote'); h.innerHTML = '';
+      const ts = E.HAND_TYPES.filter(t => st.pos.hands[o][t]);
+      if (!ts.length) h.append(el('span', 'hand-empty', 'なし'));
+      for (const t of ts) {
+        const btn = el('button', 'hand-pc' + (o === 1 ? ' gote' : ''));
+        btn.type = 'button';
+        btn.innerHTML = `<span class="pc${o === 1 ? ' gote' : ''}">${E.SHORT[t]}</span>` + (st.pos.hands[o][t] > 1 ? `<span class="cnt">${st.pos.hands[o][t]}</span>` : '');
+        btn.setAttribute('aria-label', `${o ? '後手' : '先手'}の持ち駒 ${E.KANJI[t]} ${st.pos.hands[o][t]}枚`);
+        if (o === 0) {
+          if (st.sel && st.sel.drop === t) btn.classList.add('sel');
+          btn.addEventListener('click', () => onHand(t));
+        } else btn.disabled = true;
+        h.append(btn);
+      }
+    }
+  }
+
+  function renderRecord() {
+    const ol = $('#record'); ol.innerHTML = '';
+    st.log.forEach((m, i) => {
+      const li = el('li', m.side === 0 ? 'rec-s' : 'rec-g');
+      li.append(el('span', 'rec-n', String(i + 1)), el('span', 'rec-m', m.name));
+      if (m.tag) li.append(el('span', 'rec-tag', m.tag));
+      ol.append(li);
+    });
+    ol.scrollTop = ol.scrollHeight;
+  }
+
+  // ---------- question / feedback panel ----------
+  function showQuestion() {
+    const qa = $('#qa');
+    qa.innerHTML = '';
+    st.hintShown = false; st.misses = 0;
+    if (st.done) return;
+    const stage = curStage(), step = curStep();
+    const head = el('div', 'qa-head');
+    head.append(el('span', 'qa-kind', `${st.stage + 1}. ${stage.kind}`));
+    if (stage.steps.length > 1) head.append(el('span', 'qa-sub', `${st.step + 1} / ${stage.steps.length}手目`));
+    qa.append(head);
+    if (st.step === 0 && stage.goal) qa.append(el('p', 'qa-goal', stage.goal));
+    const q = el('p', 'qa-q'); q.textContent = step ? step.q : 'あなたの番です。';
+    qa.append(q);
+    const btns = el('div', 'qa-btns');
+    const hb = el('button', 'btn ghost', 'ヒント'); hb.type = 'button'; hb.id = 'btn-hint';
+    hb.addEventListener('click', showHint);
+    const ab = el('button', 'btn ghost', '答えを見る'); ab.type = 'button'; ab.id = 'btn-answer';
+    ab.addEventListener('click', showAnswer);
+    btns.append(hb, ab);
+    qa.append(btns);
+    qa.append(el('div', 'qa-feedback'));
+    $('#turn').textContent = 'あなた(先手)の番';
+  }
+
+  function feedback(html, kind) {
+    const fb = document.querySelector('#qa .qa-feedback');
+    if (!fb) return;
+    const box = el('div', 'fb ' + (kind || ''));
+    box.innerHTML = html;
+    fb.append(box);
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function showHint() {
+    const step = curStep(); if (!step || st.hintShown) return;
+    st.hintShown = true;
+    feedback(`<b>ヒント</b>　${step.hint}`, 'hint');
+  }
+  function showAnswer() {
+    const step = curStep(); if (!step || st.busy) return;
+    const m = E.parseUsi(step.usi);
+    feedback(`<b>答え</b>　${E.moveName(st.pos, m)}　（盤上で動かしてみましょう）`, 'answer');
+    const from = m.from >= 0 ? m.from : null;
+    flash(m.to); if (from != null) flash(from);
+  }
+  function flash(i) {
+    const c = document.querySelector(`.sq[data-i="${i}"]`);
+    if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); }
+  }
+
+  // ---------- input ----------
+  function legalFor(sel) {
+    return E.legalMoves(st.pos).filter(([m]) => sel.drop ? (m.from < 0 && m.drop === sel.drop) : m.from === sel.from);
+  }
+  function onHand(t) {
+    if (st.busy || st.done || st.pos.turn !== 0) return;
+    st.sel = (st.sel && st.sel.drop === t) ? null : { drop: t };
+    renderBoard(); renderHands();
+  }
+  function onSquare(i) {
+    if (st.busy || st.done || st.pos.turn !== 0) return;
+    const v = st.pos.board[i];
+    if (st.sel) {
+      const cands = legalFor(st.sel).filter(([m]) => m.to === i);
+      if (cands.length) {
+        if (cands.length === 2) askPromote(cands);
+        else tryMove(cands[0][0]);
+        return;
+      }
+    }
+    if (v && E.owner(v) === 0) st.sel = (st.sel && st.sel.from === i) ? null : { from: i };
+    else st.sel = null;
+    renderBoard(); renderHands();
+  }
+  function askPromote(cands) {
+    const dlg = $('#promo');
+    const yes = cands.find(([m]) => m.promote)[0], no = cands.find(([m]) => !m.promote)[0];
+    dlg.hidden = false;
+    $('#promo-yes').onclick = () => { dlg.hidden = true; tryMove(yes); };
+    $('#promo-no').onclick = () => { dlg.hidden = true; tryMove(no); };
+    $('#promo-yes').focus();
+  }
+
+  function apply(m, tag) {
+    const name = E.moveName(st.pos, m, st.last);
+    st.log.push({ side: st.pos.turn, name, tag });
+    const n = E.doMove(st.pos, m);
+    st.pos = n; st.last = m; st.sel = null;
+    renderAll();
+    return name;
+  }
+
+  // ---------- judging ----------
+  function tryMove(m) {
+    st.busy = true;
+    const step = curStep();
+    const main = step ? E.parseUsi(step.usi) : null;
+    const alts = (step && step.alt || []).map(a => ({ m: E.parseUsi(a.usi), note: a.note }));
+    const n = E.doMove(st.pos, m);
+
+    if (st.dynamic === 'mate') return judgeDynamicMate(m, n);
+
+    if (main && E.sameMove(m, main)) {
+      apply(m, curStage().kind);
+      correct(`<b>正解！</b>${step.explain}` + (step.ex ? `<span class="ex">${step.ex}</span>` : ''), true);
+      return later(() => gotoReply(step));
+    }
+    // a faster forced mate is always accepted
+    if (E.givesCheck(n)) {
+      const remain = 9;
+      if (E.legalMoves(n).length === 0 || solver.evade(n, remain - 1)) {
+        const inMate = curStage().kind === '詰み';
+        apply(m, inMate ? '王手' : '詰み筋');
+        correct(inMate
+          ? '<b>正解！</b>　お手本とは別の手順ですが、この王手でも詰みます。続けて詰ませてください。'
+          : '<b>正解！</b>　この手からは相手玉に詰みがあります。予定より早い勝ち方です。ここからは詰ませるまで指してください。', true);
+        st.dynamic = 'mate'; st.stage = st.pr.stages.length - 1; st.step = 0;
+        renderStages();
+        return later(() => dynamicReply());
+      }
+    }
+    // other verified hisshi moves (precomputed) are accepted too
+    const hs = (step && step.hisshiAlts || []).find(a => E.sameMove(E.parseUsi(a.usi), m));
+    if (hs) {
+      const mainName = E.moveName(st.pos, main);
+      apply(m, '必至');
+      correct(`<b>正解！</b>　これも必至です。どう受けても次に詰みます。（お手本は ${mainName}）`, true);
+      return later(() => {
+        const rname = apply(E.parseUsi(hs.reply));
+        feedback(`<b>${rname}</b>　相手は受けましたが、もう詰みは防げません。`, 'reply');
+        st.dynamic = 'mate'; st.stage = st.pr.stages.length - 1; st.step = 0;
+        st.busy = false; renderStages();
+        dynamicPrompt();
+      });
+    }
+    const alt = alts.find(a => E.sameMove(a.m, m));
+    st.busy = false;
+    st.misses++;
+    const nm = E.moveName(st.pos, m);
+    if (alt) feedback(`<b>${nm}</b>　${alt.note}`, 'near');
+    else feedback(`<b>${nm}</b>　${st.misses >= 2 && !st.hintShown ? 'もう一度考えてみましょう。ヒントを出します。' : 'ここでは別の手を考えてみましょう。'}`, 'miss');
+    if (st.misses >= 2) showHint();
+    st.sel = null; renderBoard(); renderHands();
+  }
+
+  function correct(html, ok) {
+    feedback(html, ok ? 'ok' : '');
+    $('#btn-hint') && ($('#btn-hint').disabled = true);
+    $('#btn-answer') && ($('#btn-answer').disabled = true);
+  }
+
+  function later(fn, ms = 750) { $('#turn').textContent = '相手が考えています…'; setTimeout(fn, ms); }
+
+  function gotoReply(step) {
+    if (step.reply) {
+      const rm = E.parseUsi(step.reply);
+      const name = apply(rm);
+      if (step.replyNote) feedback(`<b>${name}</b>　${step.replyNote}`, 'reply');
+    }
+    advance();
+  }
+
+  function advance() {
+    const stage = curStage();
+    if (st.step + 1 < stage.steps.length) { st.step++; }
+    else { st.stage++; st.step = 0; }
+    if (E.legalMoves(st.pos).length === 0 && st.pos.turn === 1) return finish();
+    if (st.stage >= st.pr.stages.length) return finish();
+    st.snapshots.push(snap());
+    st.busy = false;
+    renderStages();
+    setTimeout(showQuestionKeepFeedback, 50);
+  }
+
+  // keep previous explanation visible above the new question
+  function showQuestionKeepFeedback() {
+    const prev = document.querySelector('#qa .qa-feedback');
+    const keep = prev ? Array.from(prev.children) : [];
+    showQuestion();
+    if (keep.length) {
+      const past = el('div', 'qa-past');
+      keep.forEach(k => past.append(k));
+      $('#qa').prepend(past);
+    }
+  }
+
+  // ---------- dynamic mate mode ----------
+  function judgeDynamicMate(m, n) {
+    if (E.givesCheck(n) && (E.legalMoves(n).length === 0 || solver.evade(n, 8))) {
+      apply(m, '王手');
+      if (E.legalMoves(st.pos).length === 0) { st.busy = false; return finish(); }
+      feedback('<b>正解</b>　詰みに向かう王手です。', 'ok');
+      return later(() => dynamicReply());
+    }
+    st.busy = false; st.misses++;
+    feedback(`<b>${E.moveName(st.pos, m)}</b>　${E.givesCheck(n) ? 'この王手だと逃げられてしまいます。' : '詰ませる局面です。王手で迫りましょう。'}`, 'miss');
+    st.sel = null; renderBoard(); renderHands();
+  }
+
+  function dynamicReply() {
+    let ms = E.legalMoves(st.pos);
+    if (!ms.length) return finish();
+    const quiet = ms.filter(([m, n]) => !E.inCheck(n, 0));
+    if (quiet.length) ms = quiet;
+    // gote: pick the reply that survives longest
+    let best = null, bestLen = -1;
+    for (const [m, n] of ms) {
+      let len = 99;
+      for (let d = 1; d <= 7; d += 2) if (solver.mate(n, d)) { len = d; break; }
+      // prefer non-interposition-drops on ties (more natural)
+      const score = len * 10 + (m.from >= 0 ? 1 : 0);
+      if (score > bestLen) { bestLen = score; best = m; }
+    }
+    apply(best);
+    st.busy = false;
+    st.stage = st.pr.stages.length - 1;
+    renderStages();
+    dynamicPrompt();
+  }
+
+  function dynamicPrompt() {
+    const qa = $('#qa');
+    const prevFb = Array.from(document.querySelectorAll('#qa .fb')).slice(-2);
+    qa.innerHTML = '';
+    const past = el('div', 'qa-past'); prevFb.forEach(f => past.append(f)); qa.append(past);
+    const head = el('div', 'qa-head'); head.append(el('span', 'qa-kind', `${st.stage + 1}. 詰み`)); qa.append(head);
+    qa.append(el('p', 'qa-q', '王手の連続で詰ませてください。'));
+    const btns = el('div', 'qa-btns');
+    const ab = el('button', 'btn ghost', '答えを見る'); ab.type = 'button';
+    ab.addEventListener('click', () => {
+      if (st.busy) return;
+      for (const [m, n] of E.checkMoves(st.pos)) {
+        if (E.legalMoves(n).length === 0 || solver.evade(n, 8)) {
+          feedback(`<b>答え</b>　${E.moveName(st.pos, m, st.last)}`, 'answer');
+          flash(m.to); if (m.from >= 0) flash(m.from);
+          break;
+        }
+      }
+    });
+    btns.append(ab); qa.append(btns);
+    qa.append(el('div', 'qa-feedback'));
+    $('#turn').textContent = 'あなた(先手)の番';
+  }
+
+  function finish() {
+    st.done = true; st.busy = false;
+    renderStages();
+    $('#turn').textContent = '終局';
+    const pr = st.pr;
+    const box = el('div', 'fin');
+    box.innerHTML = `<p class="fin-title">まで、詰み。</p><p>${pr.summary}</p>`;
+    const nx = el('button', 'btn', st.pi + 1 < PROBLEMS.length ? `次の囲い（${PROBLEMS[st.pi + 1].castle}）へ` : '最初の囲いへ');
+    nx.type = 'button';
+    nx.addEventListener('click', () => loadProblem((st.pi + 1) % PROBLEMS.length));
+    const again = el('button', 'btn ghost', 'もう一度');
+    again.type = 'button';
+    again.addEventListener('click', () => loadProblem(st.pi));
+    const row = el('div', 'qa-btns'); row.append(nx, again);
+    box.append(row);
+    $('#qa').append(box);
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    try { const k = 'yose-dojo-clear'; const s = JSON.parse(localStorage.getItem(k) || '[]'); if (!s.includes(pr.id)) s.push(pr.id); localStorage.setItem(k, JSON.stringify(s)); } catch (e) {}
+    markCleared();
+  }
+
+  function markCleared() {
+    let s = [];
+    try { s = JSON.parse(localStorage.getItem('yose-dojo-clear') || '[]'); } catch (e) {}
+    document.querySelectorAll('.castle-tab').forEach((b, i) => b.classList.toggle('cleared', s.includes(PROBLEMS[i].id)));
+  }
+
+  function undoStage() {
+    if (st.busy) return;
+    // go back to the start of the current question
+    const sn = st.snapshots[st.snapshots.length - 1];
+    if (st.done) { loadProblem(st.pi); return; }
+    st.pos = sn.pos; st.stage = sn.stage; st.step = sn.step; st.last = sn.last; st.log.length = sn.logLen; st.dynamic = sn.dynamic; st.sel = null;
+    renderAll(); showQuestion();
+  }
+
+  // ---------- init ----------
+  function init() {
+    const tabs = $('#castle-tabs');
+    PROBLEMS.forEach((p, i) => {
+      const b = el('button', 'castle-tab'); b.type = 'button';
+      b.innerHTML = `<span class="ct-name">${p.castle}</span><span class="ct-sub">${p.tag}</span>`;
+      b.addEventListener('click', () => loadProblem(i));
+      tabs.append(b);
+    });
+    $('#btn-retry').addEventListener('click', undoStage);
+    $('#btn-reset').addEventListener('click', () => loadProblem(st.pi));
+    let start = 0;
+    try { const v = +localStorage.getItem('yose-dojo-last'); if (v >= 0 && v < PROBLEMS.length) start = v; } catch (e) {}
+    loadProblem(start);
+    markCleared();
+  }
+  init();
+})();
+</script>
